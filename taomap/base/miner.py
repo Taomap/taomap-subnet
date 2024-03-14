@@ -134,7 +134,7 @@ class BaseMinerNeuron(BaseNeuron):
             exit()
 
         # In case of unforeseen errors, the miner will log the error and continue operations.
-        except Exception as e:
+        except BaseException as e:
             bt.logging.error(traceback.format_exc())
 
     def run_in_background_thread(self):

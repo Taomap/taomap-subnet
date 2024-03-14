@@ -101,11 +101,11 @@ class BaseValidatorNeuron(BaseNeuron):
                 bt.logging.info(
                     f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
                 )
-            except Exception as e:
+            except BaseException as e:
                 bt.logging.error(f"Failed to serve Axon with exception: {e}")
                 pass
 
-        except Exception as e:
+        except BaseException as e:
             bt.logging.error(
                 f"Failed to create Axon initialize with exception: {e}"
             )
@@ -171,7 +171,7 @@ class BaseValidatorNeuron(BaseNeuron):
             exit()
 
         # In case of unforeseen errors, the validator will log the error and continue operations.
-        except Exception as err:
+        except BaseException as err:
             bt.logging.error("Error during validation", str(err))
             bt.logging.debug(
                 print_exception(type(err), err, err.__traceback__)
