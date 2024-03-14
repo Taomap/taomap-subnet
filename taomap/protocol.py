@@ -78,6 +78,8 @@ class Benchmark( MapSynapse ):
     tensor: Optional[bt.Tensor] = None
     
     def deserialize(self):
+        if self.tensor is None:
+            return None
         tensor = self.tensor.deserialize()
         size_in_bytes = tensor.element_size() * tensor.numel()
         return [time.time(), size_in_bytes]
