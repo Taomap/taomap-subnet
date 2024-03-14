@@ -105,7 +105,7 @@ class Validator(BaseValidatorNeuron):
             # Commit hash of the next term seed
             if self.term_bias >= constants.BLOCKS_SEEDHASH_START and self.term_bias < constants.BLOCKS_SEEDHASH_END:
                 if not self.is_seedhash_commited:
-                    self.is_seedhash_commited = self.commit_data_mock({
+                    self.is_seedhash_commited = self.commit_data({
                         "type": "seedhash",
                         "term": self.term + 1,
                         "seedhash": hash(str(self.next_seed))
@@ -122,7 +122,7 @@ class Validator(BaseValidatorNeuron):
                     self.is_uploaded_group = self.upload_state()
                 # Commit seed
                 if self.is_uploaded_group and not self.is_seed_commited:
-                    self.is_seed_commited = self.commit_data_mock({
+                    self.is_seed_commited = self.commit_data({
                             "type": "seed",
                             "term": self.term,
                             "seedhash": hash(str(self.seed)),
@@ -186,8 +186,14 @@ class Validator(BaseValidatorNeuron):
                         self.benchmark_state[uid] = -1
                         continue
                     arrived_at, size = responses[i]
-                    bt.logging.info(f"Response from {3}: {(size / 1024 / 1024):.2f} MB, time: {arrived_at - benchmark_at}")
+                    bt.logging.info(f"Response from {uid}: {(size / 1024 / 1024):.2f} MB, time: {arrived_at - benchmark_at}")
                     self.benchmark_state[uid] = arrived_at - benchmark_at
+                    if 'benchmark' not in self.miner_status[uid]:
+                        self.miner_status[uid]['benchmark'] = {
+                            self.current_term: size / (arrived_at - benchmark_at)
+                        }
+                    else:
+                        self.miner_status[uid]['benchmark'][self.current_term] = size / (arrived_at - benchmark_at)
 
                 if current_group_id >= len(self.voted_groups):
                     bt.logging.info("✅ Benchmarking finished")
@@ -205,6 +211,8 @@ class Validator(BaseValidatorNeuron):
         return True
 
     def commit_data(self, data: dict[str, any]):
+        if self.config.subtensor.network == 'test':
+            return self.commit_data_mock(data)
         commit_str = json.dumps(data)
         try:
             self.subtensor.commit(self.wallet, self.config.netuid, commit_str)
@@ -221,6 +229,8 @@ class Validator(BaseValidatorNeuron):
         return None
 
     def get_commit_data(self, uid):
+        if self.config.subtensor.network == 'test':
+            return self.get_commit_data_mock(uid)
         try:
             metadata = bt.extrinsics.serving.get_metadata(self.subtensor, self.config.netuid, self.hotkeys[uid] )
             if metadata is None:
@@ -242,7 +252,7 @@ class Validator(BaseValidatorNeuron):
         # Get all commits
         commits = []
         for uid in validator_uids:
-            commit_data = self.get_commit_data_mock(uid)
+            commit_data = self.get_commit_data(uid)
             bt.logging.debug(f"Commit data {uid}: {commit_data}")
             if commit_data is None:
                 continue
