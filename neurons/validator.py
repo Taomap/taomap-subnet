@@ -105,7 +105,7 @@ class Validator(BaseValidatorNeuron):
             # Commit hash of the next term seed
             if self.term_bias >= constants.BLOCKS_SEEDHASH_START and self.term_bias < constants.BLOCKS_SEEDHASH_END:
                 if not self.is_seedhash_commited:
-                    self.is_seedhash_commited = self.commit_data({
+                    self.is_seedhash_commited = self.commit_data_mock({
                         "type": "seedhash",
                         "term": self.term + 1,
                         "seedhash": hash(str(self.next_seed))
@@ -122,7 +122,7 @@ class Validator(BaseValidatorNeuron):
                     self.is_uploaded_group = self.upload_state()
                 # Commit seed
                 if self.is_uploaded_group and not self.is_seed_commited:
-                    self.is_seed_commited = self.commit_data({
+                    self.is_seed_commited = self.commit_data_mock({
                             "type": "seed",
                             "term": self.term,
                             "seedhash": hash(str(self.seed)),
@@ -182,17 +182,12 @@ class Validator(BaseValidatorNeuron):
                 benchmark_at = time.time()
                 responses = self.dendrite.query(axons, synapse, timeout = 120, deserialize = True)
                 for i, uid in enumerate(current_group):
-                    response = responses[i]
-                    if response is None or response[1] is None:
+                    if responses[i] is None:
                         self.benchmark_state[uid] = -1
                         continue
-                    data: bt.Tensor = response[1]
-                    bt.logging.info(f"Response from {uid}: {data.shape}")
-                    if data.shape != list(constants.BENCHMARK_SHAPE):
-                        self.benchmark_state[uid] = -1
-                        continue
-                    self.benchmark_state[uid] = response[0] - benchmark_at
-                    bt.logging.info(f"Benchmark time for {uid}: {self.benchmark_state[uid]}s")
+                    arrived_at, size = responses[i]
+                    bt.logging.info(f"Response from {3}: {(size / 1024 / 1024):.2f} MB, time: {arrived_at - benchmark_at}")
+                    self.benchmark_state[uid] = arrived_at - benchmark_at
 
                 if current_group_id >= len(self.voted_groups):
                     bt.logging.info("✅ Benchmarking finished")
@@ -247,7 +242,7 @@ class Validator(BaseValidatorNeuron):
         # Get all commits
         commits = []
         for uid in validator_uids:
-            commit_data = self.get_commit_data(uid)
+            commit_data = self.get_commit_data_mock(uid)
             bt.logging.debug(f"Commit data {uid}: {commit_data}")
             if commit_data is None:
                 continue
@@ -369,7 +364,7 @@ class Validator(BaseValidatorNeuron):
             octets = [int(x) for x in ip.split('.')]
             return sum([octets[i] << (24 - 8 * i) for i in range(4)])
 
-        miner_uids = [uid for uid in self.metagraph.uids if self.metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE and self.metagraph.axons[uid].ip != "0.0.0.0"]
+        miner_uids = [uid for uid in self.metagraph.uids if self.metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE and self.metagraph.axons[uid].ip != "0.0.0.0" and self.miner_status[int(uid)]['job_id'] >= 0]
 
         ips = [self.metagraph.axons[uid].ip for uid in miner_uids]
 
@@ -377,7 +372,7 @@ class Validator(BaseValidatorNeuron):
         unique_ips = set()
         filtered_miner_uids = []
 
-        for uid in self.metagraph.uids:
+        for uid in miner_uids:
             ip = self.metagraph.axons[uid].ip
             stake = self.metagraph.stake[uid]
             
@@ -445,8 +440,8 @@ class Validator(BaseValidatorNeuron):
 
         self.update_term_bias()
 
-        if self.step % 10 > 0:
-            return
+        if self.current_term % 10 > 0 and hasattr(self, 'miner_status'):
+            return 
         
         miner_uids = [uid for uid in self.metagraph.uids if self.metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE and self.metagraph.axons[uid].ip != "0.0.0.0" ]
         axons = [self.metagraph.axons[uid] for uid in miner_uids]
