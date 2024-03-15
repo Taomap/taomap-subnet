@@ -36,7 +36,6 @@ from sklearn.cluster import KMeans
 import numpy as np
 import os
 import json
-import functools
 import taomap.utils as utils
 import traceback
 import threading
@@ -60,9 +59,6 @@ class Validator(BaseValidatorNeuron):
         super(Validator, self).__init__(config=config)
 
         bt.logging.info(self.config)
-        # Dont log to wandb if offline.
-        # if not self.config.offline and self.config.wandb.on:
-        self.new_wandb_run()
         self.subtensor_benchmark = bt.subtensor(config=self.config)
 
     def init_term_variables(self):
@@ -332,28 +328,6 @@ class Validator(BaseValidatorNeuron):
                     "grouphash": hash(str(self.groups))
                 })
 
-    def new_wandb_run(self):
-        """Creates a new wandb run to save information to."""
-        # Create a unique run id for this run.
-        run_id = dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        name = "validator-" + str(self.uid) + "-" + run_id
-        self.wandb_run = wandb.init(
-            dir=self.config.neuron.full_path,
-            name=name,
-            project=self.config.wandb.project_name,
-            entity=self.config.wandb.entity,
-            config={
-                "uid": self.uid,
-                "hotkey": self.wallet.hotkey.ss58_address,
-                "run_name": run_id,
-                "version": constants.__version__,
-                "type": "validator",
-            },
-            allow_val_change=True,
-        )
-
-        bt.logging.debug(f"Started a new wandb run: {name}")
-
     def cluster_miners(self):
         """
         This function is called by the validator every time step.
@@ -376,8 +350,10 @@ class Validator(BaseValidatorNeuron):
 
         miner_uids = [uid for uid in self.metagraph.uids if self.metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE and self.metagraph.axons[uid].ip != "0.0.0.0" and self.miner_status[int(uid)]['job_id'] >= 0]
 
+
         ips = [self.metagraph.axons[uid].ip for uid in miner_uids]
 
+        bt.logging.debug(f"Available miner uids: {miner_uids} {ips}")
         # Filter out any duplicate IPs
         unique_ips = set()
         filtered_miner_uids = []
@@ -450,7 +426,7 @@ class Validator(BaseValidatorNeuron):
 
         self.update_term_bias()
 
-        if self.term_bias % 10 > 0 and hasattr(self, 'miner_status') and self.wandb_run is None:
+        if self.term_bias % 10 > 0 and hasattr(self, 'miner_status'):
             return 
         
         miner_uids = [uid for uid in self.metagraph.uids if self.metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE and self.metagraph.axons[uid].ip != "0.0.0.0" ]

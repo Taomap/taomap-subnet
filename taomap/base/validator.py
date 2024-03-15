@@ -23,7 +23,9 @@ import asyncio
 import argparse
 import threading
 import os
+import wandb
 import bittensor as bt
+import datetime as dt
 
 from typing import List
 from traceback import print_exception
@@ -31,6 +33,7 @@ from traceback import print_exception
 from taomap.base.neuron import BaseNeuron
 from taomap.mock import MockDendrite
 from taomap.utils.config import add_validator_args
+import taomap.constants as constants
 
 import traceback
 
@@ -67,6 +70,12 @@ class BaseValidatorNeuron(BaseNeuron):
 
         bt.logging.info("load_state()")
         self.load_state()
+
+        # New wandb run
+
+        # Dont log to wandb if offline.
+        # if not self.config.offline and self.config.wandb.on:
+        self.new_wandb_run()
 
         # Init sync with the network. Updates the metagraph.
         self.sync()
@@ -381,3 +390,26 @@ class BaseValidatorNeuron(BaseNeuron):
         self.is_seed_shared = state["seed_shared"]
         self.is_set_weight = state["set_weights"]
         bt.logging.info(f"Loaded state: {state}")
+
+    
+    def new_wandb_run(self):
+        """Creates a new wandb run to save information to."""
+        # Create a unique run id for this run.
+        run_id = dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        name = "validator-" + str(self.uid) + "-" + run_id
+        self.wandb_run = wandb.init(
+            dir=self.config.neuron.full_path,
+            name=name,
+            project=self.config.wandb.project_name,
+            entity=self.config.wandb.entity,
+            config={
+                "uid": self.uid,
+                "hotkey": self.wallet.hotkey.ss58_address,
+                "run_name": run_id,
+                "version": constants.__version__,
+                "type": "validator",
+            },
+            allow_val_change=True,
+        )
+
+        bt.logging.debug(f"Started a new wandb run: {name}")
