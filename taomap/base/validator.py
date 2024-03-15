@@ -26,6 +26,7 @@ import os
 import wandb
 import bittensor as bt
 import datetime as dt
+import time
 
 from typing import List
 from traceback import print_exception
@@ -34,8 +35,11 @@ from taomap.base.neuron import BaseNeuron
 from taomap.mock import MockDendrite
 from taomap.utils.config import add_validator_args
 import taomap.constants as constants
+import taomap
 
 import traceback
+from rich.table import Table
+from rich.console import Console
 
 class BaseValidatorNeuron(BaseNeuron):
     """
@@ -58,8 +62,10 @@ class BaseValidatorNeuron(BaseNeuron):
         # Dendrite lets us send messages to other nodes (axons) in the network.
         if self.config.mock:
             self.dendrite = MockDendrite(wallet=self.wallet)
+            self.dendrite_sync = MockDendrite(wallet=self.wallet)
         else:
             self.dendrite = bt.dendrite(wallet=self.wallet)
+            self.dendrite_sync = bt.dendrite(wallet=self.wallet)
         bt.logging.info(f"Dendrite: {self.dendrite}")
 
         # Set up initial scoring weights for validation
@@ -70,6 +76,8 @@ class BaseValidatorNeuron(BaseNeuron):
 
         bt.logging.info("load_state()")
         self.load_state()
+
+        self.subtensor_sync = bt.subtensor(config=self.config)
 
         # New wandb run
 
@@ -93,7 +101,12 @@ class BaseValidatorNeuron(BaseNeuron):
         self.should_exit: bool = False
         self.is_running: bool = False
         self.thread: threading.Thread = None
+        self.status_thread: threading.Thread = None
         self.lock = asyncio.Lock()
+
+        # Initialize variables
+        self.last_status_updated: int = None
+        self.miner_status: dict = None
 
     def serve_axon(self):
         """Serve axon to enable external connections."""
@@ -196,6 +209,8 @@ class BaseValidatorNeuron(BaseNeuron):
             self.should_exit = False
             self.thread = threading.Thread(target=self.run, daemon=True)
             self.thread.start()
+            self.status_thread = threading.Thread(target=self.run_status, daemon=True)
+            self.status_thread.start()
             self.is_running = True
             bt.logging.debug("Started")
 
@@ -207,6 +222,7 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.debug("Stopping validator in background thread.")
             self.should_exit = True
             self.thread.join(5)
+            self.status_thread.join(5)
             self.is_running = False
             bt.logging.debug("Stopped")
 
@@ -413,3 +429,58 @@ class BaseValidatorNeuron(BaseNeuron):
         )
 
         bt.logging.debug(f"Started a new wandb run: {name}")
+
+    def update_term_bias(self):
+        ...
+
+    
+    def run_status(self):
+        while True:
+            try:
+                self.update_miner_status()
+                if self.should_exit:
+                    break
+            except BaseException as e:
+                bt.logging.error(f"Error in run_status: {e}")
+                bt.logging.debug(traceback.format_exc())
+            time.sleep(bt.__blocktime__ * 4)
+
+    def update_miner_status(self):
+        
+        metagraph = self.subtensor_sync.metagraph(self.config.netuid)
+        miner_uids = [uid for uid in metagraph.uids if metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE and metagraph.axons[uid].ip != "0.0.0.0" ]
+        axons = [metagraph.axons[uid] for uid in miner_uids]
+        synapse = taomap.protocol.MinerStatus(version=constants.__version__)
+        responses = self.dendrite.query(axons, synapse, timeout = 12, deserialize = True)
+        status_texts = {}
+        self.miner_status = {}
+        for i, uid in enumerate(miner_uids):
+            job_id, status = responses[i]
+            status_texts[int(uid)] = status
+            self.miner_status[int(uid)] = {
+                "job_id": job_id,
+                "status": status
+            }
+        block_height = self.subtensor_sync.get_current_block()
+        current_term = (block_height - constants.ORIGIN_TERM_BLOCK) // constants.BLOCKS_PER_TERM
+        self.upload_to_wandb(f'miners-{self.uid}', f'{current_term}', status_texts)
+        self.last_status_updated = block_height
+        self.print_miner_status()
+
+    def print_miner_status(self):
+        table = Table(title="Miners")
+        table.add_column("uid", justify="right", style="cyan", no_wrap=True)
+        table.add_column("status", style="magenta", no_wrap=True)
+        for uid in self.miner_status:
+            status = self.miner_status[uid]['status']
+            icon = '🟢'
+            if status == 'working':
+                icon = '🔵'
+            elif status == 'offline':
+                icon = '🛑'
+            table.add_row(
+                str(uid),
+                f"{icon} {status}"
+            )
+        console = Console()
+        console.print(table)
