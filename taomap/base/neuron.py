@@ -19,15 +19,17 @@ import copy
 import typing
 
 import bittensor as bt
+import traceback
 
 from abc import ABC, abstractmethod
-
 # Sync calls set weights and also resyncs the metagraph.
 from taomap.utils.config import check_config, add_args, config
 from taomap.utils.misc import ttl_get_block
 from taomap import __spec_version__ as spec_version
 from taomap.mock import MockSubtensor, MockMetagraph
-
+import taomap.constants as constants
+import json
+import requests
 
 class BaseNeuron(ABC):
     """
@@ -177,3 +179,49 @@ class BaseNeuron(ABC):
         bt.logging.warning(
             "load_state() not implemented for this neuron. You can implement this function to load model checkpoints or other useful data."
         )
+
+    
+    def commit_data_mock(self, data: dict[str, any]):
+        response = requests.post(f"{constants.API_URL}/testnet/commit/{self.uid}", json=data)
+        if response.status_code != 200:
+            bt.logging.error(f"Error committing: {response.text}")
+            bt.logging.debug(response.status_code)
+            return False
+        return True
+
+    def commit_data(self, data: dict[str, any]):
+        if self.config.subtensor.network == 'test':
+            return self.commit_data_mock(data)
+        commit_str = json.dumps(data)
+        try:
+            self.subtensor.commit(self.wallet, self.config.netuid, commit_str)
+            bt.logging.info(f"Committed: {commit_str}")
+            return True
+        except BaseException as e:
+            bt.logging.error(f"Error committing: {e}")
+            bt.logging.debug(traceback.format_exc())
+            return False
+        
+    def get_commit_data_mock(self, uid):
+        response = requests.get(f"{constants.API_URL}/testnet/commit/{uid}")
+        if response.status_code != 200:
+            bt.logging.error(f"Error getting commitment: {response.text}")
+            return None
+        return response.json()
+
+    def get_commit_data(self, uid):
+        if self.config.subtensor.network == 'test':
+            return self.get_commit_data_mock(uid)
+        try:
+            metadata = bt.extrinsics.serving.get_metadata(self.subtensor, self.config.netuid, self.hotkeys[uid] )
+            if metadata is None:
+                return None
+            last_commitment = metadata["info"]["fields"][0]
+            hex_data = last_commitment[list(last_commitment.keys())[0]][2:]
+            data = json.loads(bytes.fromhex(hex_data).decode())
+            data['block'] = metadata['block']
+            return data
+        except BaseException as e:
+            bt.logging.error(f"Error getting commitment: {e}")
+            bt.logging.debug(traceback.format_exc())
+            return None

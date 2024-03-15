@@ -139,7 +139,7 @@ class Validator(BaseValidatorNeuron):
 
             return await forward(self)
         except BaseException as e:
-            bt.logging.error(f"Error committing: {e}")
+            bt.logging.error(f"Error forwarding: {e}")
             bt.logging.debug(traceback.format_exc())
 
     def start_benchmark_thread(self):
@@ -199,46 +199,6 @@ class Validator(BaseValidatorNeuron):
                 time.sleep(0.1)
         bt.logging.info("Benchmarking thread finished")
     
-    def commit_data_mock(self, data: dict[str, any]):
-        self._committed_data = data
-        self._committed_data['block'] = self.subtensor.get_current_block()
-        return True
-
-    def commit_data(self, data: dict[str, any]):
-        if self.config.subtensor.network == 'test':
-            return self.commit_data_mock(data)
-        commit_str = json.dumps(data)
-        try:
-            self.subtensor.commit(self.wallet, self.config.netuid, commit_str)
-            bt.logging.info(f"Committed: {commit_str}")
-            return True
-        except BaseException as e:
-            bt.logging.error(f"Error committing: {e}")
-            bt.logging.debug(traceback.format_exc())
-            return False
-        
-    def get_commit_data_mock(self, uid):
-        if hasattr(self, '_committed_data'):
-            return self._committed_data
-        return None
-
-    def get_commit_data(self, uid):
-        if self.config.subtensor.network == 'test':
-            return self.get_commit_data_mock(uid)
-        try:
-            metadata = bt.extrinsics.serving.get_metadata(self.subtensor, self.config.netuid, self.hotkeys[uid] )
-            if metadata is None:
-                return None
-            last_commitment = metadata["info"]["fields"][0]
-            hex_data = last_commitment[list(last_commitment.keys())[0]][2:]
-            data = json.loads(bytes.fromhex(hex_data).decode())
-            data['block'] = metadata['block']
-            return data
-        except BaseException as e:
-            bt.logging.error(f"Error getting commitment: {e}")
-            bt.logging.debug(traceback.format_exc())
-            return None
-
     def get_vote_result(self):
         # Download all commits and groups, seeds
         validator_uids = [uid for uid in self.metagraph.uids if self.metagraph.stake[uid] >= constants.VALIDATOR_MIN_STAKE]
@@ -349,7 +309,10 @@ class Validator(BaseValidatorNeuron):
         def ip_to_int(ip):
             octets = [int(x) for x in ip.split('.')]
             return sum([octets[i] << (24 - 8 * i) for i in range(4)])
-
+        
+        if self.miner_status is None:
+            return []
+        
         miner_uids = [uid for uid in self.metagraph.uids if self.metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE and self.metagraph.axons[uid].ip != "0.0.0.0" and self.miner_status[int(uid)]['job_id'] >= 0]
 
 

@@ -4,7 +4,7 @@ __version__ = "1.10.0"
 
 WANDB_PROJECT = "taomap"
 
-
+API_URL = "https://api.taomap.ai"
 # The root directory of this project.
 ROOT_DIR = Path(__file__).parent.parent
 
