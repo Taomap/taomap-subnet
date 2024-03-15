@@ -450,7 +450,7 @@ class Validator(BaseValidatorNeuron):
 
         self.update_term_bias()
 
-        if self.current_term % 10 > 0 and hasattr(self, 'miner_status'):
+        if self.term_bias % 10 > 0 and hasattr(self, 'miner_status'):
             return 
         
         miner_uids = [uid for uid in self.metagraph.uids if self.metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE and self.metagraph.axons[uid].ip != "0.0.0.0" ]
