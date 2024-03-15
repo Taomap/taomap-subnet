@@ -28,7 +28,6 @@ from taomap.validator import forward
 
 # import base validator class which takes care of most of the boilerplate
 from taomap.base.validator import BaseValidatorNeuron
-import datetime as dt
 import wandb
 import taomap.constants as constants
 import random
@@ -39,8 +38,6 @@ import json
 import taomap.utils as utils
 import traceback
 import threading
-from rich.table import Table
-from rich.console import Console
 
 class Validator(BaseValidatorNeuron):
     """
@@ -92,6 +89,7 @@ class Validator(BaseValidatorNeuron):
         - Updating the scores
         """
         try: 
+            self.update_term_bias()
             bt.logging.info(f"Current block height: {self.block_height}, current term: {self.current_term}, blocks: {self.term_bias}")
             if self.current_term > self.term:
                 bt.logging.info(f"New term {self.current_term}")
@@ -290,6 +288,10 @@ class Validator(BaseValidatorNeuron):
             bt.logging.warning("No valid commits")
             return None, []
         valid_commits = [commit for commit in commits if commit['valid']]
+
+        if len(valid_commits) == 0:
+            bt.logging.warning("No valid commits")
+            return None, []
         # Vote for the group
         sum_of_seeds = sum(commit['seed'] for commit in valid_commits)
         voted_commit = valid_commits[sum_of_seeds % len(valid_commits)]
@@ -408,6 +410,8 @@ class Validator(BaseValidatorNeuron):
         while len(leftovers) >= 4:
             final_groups.append(leftovers[:4])
             leftovers = leftovers[4:]
+        
+        final_groups.append(leftovers)
 
         # Display the groups
         for i, group in enumerate(final_groups):
@@ -421,50 +425,6 @@ class Validator(BaseValidatorNeuron):
         random.shuffle(uid_groups)
         return uid_groups
     
-    def sync(self):
-        super().sync()
-
-        self.update_term_bias()
-
-        if self.term_bias % 10 > 0 and hasattr(self, 'miner_status'):
-            return 
-        
-        miner_uids = [uid for uid in self.metagraph.uids if self.metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE and self.metagraph.axons[uid].ip != "0.0.0.0" ]
-        axons = [self.metagraph.axons[uid] for uid in miner_uids]
-        synapse = taomap.protocol.MinerStatus(version=constants.__version__)
-        responses = self.dendrite.query(axons, synapse, timeout = 3, deserialize = True)
-        status_texts = {}
-        self.miner_status = {}
-        for i, uid in enumerate(miner_uids):
-            job_id, status = responses[i]
-            status_texts[int(uid)] = status
-            self.miner_status[int(uid)] = {
-                "job_id": job_id,
-                "status": status
-            }
-            
-        self.upload_to_wandb(f'miner-status-{self.uid}', f'{self.current_term}', status_texts)
-        self.print_miner_status(status_texts)
-
-
-    def print_miner_status(self, status_texts):
-        table = Table(title="Miners")
-        table.add_column("uid", justify="right", style="cyan", no_wrap=True)
-        table.add_column("status", style="magenta", no_wrap=True)
-        for uid in status_texts:
-            status = status_texts[uid]
-            icon = '🟢'
-            if status == 'working':
-                icon = '🔵'
-            elif status == 'offline':
-                icon = '🛑'
-            table.add_row(
-                str(uid),
-                f"{icon} {status}"
-            )
-        console = Console()
-        console.print(table)
-
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
     with Validator() as validator:
