@@ -437,7 +437,9 @@ class BaseValidatorNeuron(BaseNeuron):
     def run_status(self):
         while True:
             try:
-                self.update_miner_status()
+                if not self.update_miner_status():
+                    bt.logging.debug("No miner status updated")
+                    continue
                 if self.should_exit:
                     break
             except BaseException as e:
@@ -451,7 +453,10 @@ class BaseValidatorNeuron(BaseNeuron):
         miner_uids = [uid for uid in metagraph.uids if metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE and metagraph.axons[uid].ip != "0.0.0.0" ]
         axons = [metagraph.axons[uid] for uid in miner_uids]
         synapse = taomap.protocol.MinerStatus(version=constants.__version__)
-        responses = self.dendrite.query(axons, synapse, timeout = 12, deserialize = True)
+        responses = self.dendrite.query(axons, synapse, timeout = 3, deserialize = True)
+        # if all response are None, then we assume all miners are offline
+        if all([response is None for response in responses]):
+            return False
         status_texts = {}
         self.miner_status = {}
         for i, uid in enumerate(miner_uids):
@@ -466,6 +471,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.upload_to_wandb(f'miners-{self.uid}', f'{current_term}', status_texts)
         self.last_status_updated = block_height
         self.print_miner_status()
+        return True
 
     def print_miner_status(self):
         table = Table(title="Miners")
