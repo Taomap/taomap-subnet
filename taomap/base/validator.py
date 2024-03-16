@@ -445,7 +445,7 @@ class BaseValidatorNeuron(BaseNeuron):
             except BaseException as e:
                 bt.logging.error(f"Error in run_status: {e}")
                 bt.logging.debug(traceback.format_exc())
-            time.sleep(bt.__blocktime__ * 4)
+            time.sleep(bt.__blocktime__ * 16)
 
     def update_miner_status(self):
         
@@ -455,7 +455,7 @@ class BaseValidatorNeuron(BaseNeuron):
         synapse = taomap.protocol.MinerStatus(version=constants.__version__)
         responses = self.dendrite.query(axons, synapse, timeout = 3, deserialize = True)
         # if all response are None, then we assume all miners are offline
-        if all([response is None for response in responses]):
+        if all([response[0] < 0 for response in responses]):
             return False
         status_texts = {}
         self.miner_status = {}
