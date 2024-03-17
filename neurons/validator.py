@@ -159,9 +159,9 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info("Benchmarking thread started")
         benchmark_started = False
         current_term = self.current_term
+        current_block = self.subtensor_benchmark.get_current_block()
         while True:
             try:
-                current_block = self.subtensor_benchmark.get_current_block()
                 term_bias = (current_block - constants.ORIGIN_TERM_BLOCK) % constants.BLOCKS_PER_TERM
                 if current_term != self.current_term:
                     bt.logging.info(f"New term {self.current_term}, exit benchmarking ...")
@@ -180,13 +180,13 @@ class Validator(BaseValidatorNeuron):
                 if current_group_id >= len(self.voted_groups):
                     bt.logging.info("✅ Benchmarking finished")
                     break
-                current_group = self.voted_groups[current_group_id]
+                current_group = self.voted_groups[current_group_id] 
                 bt.logging.info(f"Benchmarking group {current_group_id}: {current_group}")
 
                 axons = [self.metagraph.axons[uid] for uid in current_group]
                 synapse = taomap.protocol.Benchmark_Speed(shape=list(constants.BENCHMARK_SHAPE))
                 benchmark_at = time.time()
-                responses = self.dendrite.query(axons, synapse, timeout = 120, deserialize = True)
+                responses = self.dendrite.query(axons, synapse, timeout = min(100, max(constants.BLOCKS_PER_GROUP * 8, 50)), deserialize = True)
                 for i, uid in enumerate(current_group):
                     if responses[i] is None:
                         self.benchmark_state[uid] = -1
@@ -203,8 +203,13 @@ class Validator(BaseValidatorNeuron):
                 
                 version = self.upload_to_wandb(f'benchmark-{self.uid}', f'benchmark-{self.current_term}', self.benchmark_state)
                 self.benchmark_version = version
-                
-                time.sleep(0.1)
+
+                # wait for the next group
+                block_height = self.subtensor_benchmark.get_current_block()
+                while current_block == block_height:
+                    time.sleep(1)
+                    block_height = self.subtensor_benchmark.get_current_block()
+                current_block == block_height
             except BaseException as e:
                 bt.logging.error(f"Error benchmarking: {e}")
                 bt.logging.debug(traceback.format_exc())
