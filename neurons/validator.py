@@ -169,14 +169,14 @@ class Validator(BaseValidatorNeuron):
                 if term_bias < constants.BLOCKS_START_BENCHMARK:
                     time.sleep(1)
                     continue
-                if not benchmark_started:
-                    benchmark_started = True
-                    bt.logging.info("🚀 Benchmarking started")
-                current_group_id = (term_bias - constants.BLOCKS_START_BENCHMARK) // constants.BLOCKS_PER_GROUP
                 if self.voted_uid is None:
                     bt.logging.warning("No voted uid")
                     time.sleep(2)
                     break
+                if not benchmark_started:
+                    benchmark_started = True
+                    bt.logging.info("🚀 Benchmarking started")
+                current_group_id = (term_bias - constants.BLOCKS_START_BENCHMARK) // constants.BLOCKS_PER_GROUP
                 if current_group_id >= len(self.voted_groups):
                     bt.logging.info("✅ Benchmarking finished")
                     break
@@ -446,10 +446,15 @@ class Validator(BaseValidatorNeuron):
 
         # Download from wandb
         for commit in commits:
+            if 'benchmark_version' not in commit:
+                continue
             data = self.download_from_wandb(f"benchmark-{commit['uid']}", f"benchmark-{self.term}", commit['benchmark_version'])
             if data is None:
                 continue
             commit['benchmark'] = data
+        
+        # Filter out commits without benchmarks
+        commits = [commit for commit in commits if 'benchmark' in commit]
 
         responses = []
         miner_uids = []
