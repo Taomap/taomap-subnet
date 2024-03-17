@@ -53,12 +53,14 @@ class Validator(BaseValidatorNeuron):
     def __init__(self, config=None):
 
         self.term = 0
-        self.init_term_variables()
         
         super(Validator, self).__init__(config=config)
 
-        bt.logging.info(self.config)
         self.subtensor_benchmark = bt.subtensor(config=self.config)
+        
+        self.init_term_variables()
+
+        bt.logging.info(self.config)
 
     def init_term_variables(self):
         self.is_seedhash_commited = False
@@ -418,6 +420,8 @@ class Validator(BaseValidatorNeuron):
         """
         Returns True if the validator should set weights based on the current block height and the last time weights were set.
         """
+        if not super().should_set_weights():
+            return False
         if self.is_set_weight:
             return False
         if self.term_bias >= constants.BLOCKS_SEEDHASH_END:
