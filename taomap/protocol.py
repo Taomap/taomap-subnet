@@ -19,6 +19,7 @@ from typing import Optional, List, Dict
 import bittensor as bt
 import pydantic
 import time
+import taomap.constants as constants
 
 """
 Extends the Bittensor Synapse with an additional version attribute, 
@@ -73,7 +74,7 @@ Speed test
 
 TODO: Add security checks
 """
-class Benchmark( MapSynapse ):
+class Benchmark_Speed( MapSynapse ):
     shape: Optional[List[int]] = None
     tensor: Optional[bt.Tensor] = None
     
@@ -81,6 +82,8 @@ class Benchmark( MapSynapse ):
         if self.tensor is None:
             return None
         tensor = self.tensor.deserialize()
+        if tuple(tensor.shape) != constants.BENCHMARK_SHAPE:
+            return None
         size_in_bytes = tensor.element_size() * tensor.numel()
         return [time.time(), size_in_bytes]
 

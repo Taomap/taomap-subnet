@@ -184,7 +184,7 @@ class Validator(BaseValidatorNeuron):
                 bt.logging.info(f"Benchmarking group {current_group_id}: {current_group}")
 
                 axons = [self.metagraph.axons[uid] for uid in current_group]
-                synapse = taomap.protocol.Benchmark(shape=list(constants.BENCHMARK_SHAPE))
+                synapse = taomap.protocol.Benchmark_Speed(shape=list(constants.BENCHMARK_SHAPE))
                 benchmark_at = time.time()
                 responses = self.dendrite.query(axons, synapse, timeout = 120, deserialize = True)
                 for i, uid in enumerate(current_group):
