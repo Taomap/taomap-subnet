@@ -419,7 +419,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.wandb_run = wandb.init(
             dir=self.config.neuron.full_path,
             name=name,
-            project=self.config.wandb.project_name,
+            project=constants.WANDB_PROJECT,
             entity=self.config.wandb.entity,
             config={
                 "uid": self.uid,
