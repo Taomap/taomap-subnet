@@ -78,6 +78,13 @@ def add_args(cls, parser):
     )
 
     parser.add_argument(
+        "--neuron.sync_length",
+        type=int,
+        help="The default sync length (how often we sync metagraph, measured in 12 second blocks).",
+        default=10,
+    )
+
+    parser.add_argument(
         "--mock",
         action="store_true",
         help="Mock neuron and all network components.",
@@ -201,7 +208,7 @@ def add_validator_args(cls, parser):
         "--neuron.moving_average_alpha",
         type=float,
         help="Moving average alpha parameter, how much to add of the new observation.",
-        default=0.1,
+        default=0.5,
     )
 
     parser.add_argument(
