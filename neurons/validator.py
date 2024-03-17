@@ -122,7 +122,7 @@ class Validator(BaseValidatorNeuron):
                 if self.groups == None:
                     self.groups = self.cluster_miners()
                 if not self.is_uploaded_group:
-                    self.is_uploaded_group = self.upload_state() is not None
+                    self.is_uploaded_group = self.upload_state()
                 # Commit seed
                 if self.is_uploaded_group and not self.is_seed_commited:
                     self.is_seed_commited = self.commit_data({
@@ -130,7 +130,8 @@ class Validator(BaseValidatorNeuron):
                             "term": self.term,
                             "seedhash": hash(str(self.seed)),
                             "seed": self.seed,
-                            "grouphash": hash(str(self.groups))
+                            "grouphash": hash(str(self.groups)),
+                            "version": self.is_uploaded_group
                         })
                     bt.logging.info(f"Committed seed for term {self.term}")
                 self.update_term_bias()
@@ -236,29 +237,24 @@ class Validator(BaseValidatorNeuron):
                 "block": commit_data['block'],
                 "seedhash": commit_data["seedhash"],
                 "seed": commit_data["seed"],
-                "grouphash": commit_data["grouphash"]
+                "grouphash": commit_data["grouphash"],
+                "version": commit_data["version"],
             })
         print("Commits: ", commits)
 
         # Get all shared seeds
         for commit in commits:
-            try:
-                artifact_url = f"{self.config.wandb.entity}/{self.config.wandb.project_name}/state-{commit['uid']}:latest"
-                artifact = wandb.use_artifact(artifact_url)
-                artifact_dir = artifact.download(self.config.neuron.full_path)
-                shared_file = os.path.join(artifact_dir, f"{commit['term']}.json")
-                with open(shared_file, 'r') as f:
-                    data = json.load(f)
-                if commit["seedhash"] != data["hash"]:
-                    commit['valid'] = False
-                    bt.logging.warning(f"Seed hash mismatch for {commit['uid']}")
-                    continue
-                commit['valid'] = True
-                commit['groups'] = data['groups']
-            except BaseException as e:
+            data = self.download_from_wandb(f"state-{commit['uid']}", f"{commit['term']}", commit['version'])
+            if not data:
                 commit['valid'] = False
-                bt.logging.error(f"Error getting shared seed: {e}")
-                bt.logging.debug(traceback.format_exc())
+                bt.logging.warning(f"Error getting shared seed for {commit['uid']}")
+                continue
+            if commit["seedhash"] != data["hash"]:
+                commit['valid'] = False
+                bt.logging.warning(f"Seed hash mismatch for {commit['uid']}")
+                continue
+            commit['valid'] = True
+            commit['groups'] = data['groups']
 
         print("Commits with groups and seeds: ", commits)
         if len(commits) == 0:
