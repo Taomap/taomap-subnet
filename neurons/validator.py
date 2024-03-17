@@ -74,8 +74,8 @@ class Validator(BaseValidatorNeuron):
         self.groups = None
         self.is_uploaded_group = False
         self.benchmark_state = {}
-        if self.benchmark_thread is not None and self.benchmark_thread.is_alive():
-            self.benchmark_thread.join(0.1)
+        if hasattr(self, 'benchmark_thread') and self.benchmark_thread is not None:
+            self.benchmark_thread.join(1)
         self.benchmark_thread = None
         self.benchmark_version = None
 
