@@ -78,6 +78,7 @@ class Validator(BaseValidatorNeuron):
             self.benchmark_thread.join(1)
         self.benchmark_thread = None
         self.benchmark_version = None
+        self.update_term_bias()
 
     def update_term_bias(self):
         self.block_height = self.subtensor.get_current_block()
