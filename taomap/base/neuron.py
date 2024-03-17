@@ -95,6 +95,8 @@ class BaseNeuron(ABC):
             self.wallet = bt.wallet(config=self.config)
             self.subtensor = bt.subtensor(config=self.config)
             self.metagraph = self.subtensor.metagraph(self.config.netuid)
+        
+        self.last_synced_block = self.block
 
         bt.logging.info(f"Wallet: {self.wallet}")
         bt.logging.info(f"Subtensor: {self.subtensor}")
@@ -129,6 +131,7 @@ class BaseNeuron(ABC):
         if self.should_sync_metagraph():
             self.check_registered()
             self.resync_metagraph()
+            self.last_synced_block = self.block
 
         if self.should_set_weights():
             self.set_weights()
@@ -152,9 +155,7 @@ class BaseNeuron(ABC):
         """
         Check if enough epoch blocks have elapsed since the last checkpoint to sync.
         """
-        return (
-            self.block - self.metagraph.last_update[self.uid]
-        ) > self.config.neuron.epoch_length
+        return self.block - self.last_synced_block > self.config.neuron.sync_length
 
     def should_set_weights(self) -> bool:
         # Don't set weights on initialization.

@@ -177,6 +177,9 @@ class Validator(BaseValidatorNeuron):
                     bt.logging.warning("No voted uid")
                     time.sleep(2)
                     break
+                if current_group_id >= len(self.voted_groups):
+                    bt.logging.info("✅ Benchmarking finished")
+                    break
                 current_group = self.voted_groups[current_group_id]
                 bt.logging.info(f"Benchmarking group {current_group_id}: {current_group}")
 
@@ -200,10 +203,7 @@ class Validator(BaseValidatorNeuron):
                 
                 version = self.upload_to_wandb(f'benchmark-{self.uid}', f'benchmark-{self.current_term}', self.benchmark_state)
                 self.benchmark_version = version
-
-                if current_group_id == len(self.voted_groups) - 1:
-                    bt.logging.info("✅ Benchmarking finished")
-                    break
+                
                 time.sleep(0.1)
             except BaseException as e:
                 bt.logging.error(f"Error benchmarking: {e}")
