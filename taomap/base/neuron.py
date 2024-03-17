@@ -67,6 +67,8 @@ class BaseNeuron(ABC):
         self.config.merge(base_config)
         self.check_config(self.config)
 
+        self.load_configuration()
+
         # Set up logging with the provided configuration and directory.
         bt.logging(config=self.config, logging_dir=self.config.full_path)
 
@@ -179,6 +181,32 @@ class BaseNeuron(ABC):
         bt.logging.warning(
             "load_state() not implemented for this neuron. You can implement this function to load model checkpoints or other useful data."
         )
+
+    def load_configuration(self):
+        try:
+            url = f"{constants.API_URL}/config/mainnet.json"
+            if self.config.subtensor.network == 'test':
+                url = f"{constants.API_URL}/config/testnet.json"
+            response = requests.get(url)
+            if response.status_code != 200:
+                bt.logging.error(f"Error getting configuration: {response.text}")
+                return
+            config = response.json()
+            constants.WANDB_PROJECT = config['WANDB_PROJECT']
+            constants.ORIGIN_TERM_BLOCK = config['ORIGIN_TERM_BLOCK']
+            constants.BLOCKS_PER_TERM = config['BLOCKS_PER_TERM']
+            constants.BLOCKS_SHARE_SEED = config['BLOCKS_SHARE_SEED']
+            constants.BLOCKS_START_BENCHMARK = config['BLOCKS_START_BENCHMARK']
+            constants.BLOCKS_PER_GROUP = config['BLOCKS_PER_GROUP']
+            constants.BLOCKS_SEEDHASH_START = config['BLOCKS_SEEDHASH_START']
+            constants.BLOCKS_SEEDHASH_END = config['BLOCKS_SEEDHASH_END']
+            constants.BENCHMARK_SHAPE = eval(config['BENCHMARK_SHAPE'])
+            constants.VALIDATOR_MIN_STAKE = config['VALIDATOR_MIN_STAKE']
+            
+            bt.logging.success(f"Loaded configuration: {config}")
+        except BaseException as e:
+            bt.logging.error(f"Error loading configuration: {e}")
+            bt.logging.debug(traceback.format_exc())
 
     
     def commit_data_mock(self, data: dict[str, any]):
