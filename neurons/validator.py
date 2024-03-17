@@ -39,6 +39,8 @@ import taomap.utils as utils
 import traceback
 import threading
 
+from taomap.validator.reward import get_rewards
+
 class Validator(BaseValidatorNeuron):
     """
     Your validator neuron class. You should use this class to define your validator's behavior. In particular, you should replace the forward function with your own logic.
@@ -72,7 +74,10 @@ class Validator(BaseValidatorNeuron):
         self.groups = None
         self.is_uploaded_group = False
         self.benchmark_state = {}
+        if self.benchmark_thread is not None and self.benchmark_thread.is_alive():
+            self.benchmark_thread.join(0.1)
         self.benchmark_thread = None
+        self.benchmark_version = None
 
     def update_term_bias(self):
         self.block_height = self.subtensor.get_current_block()
@@ -102,7 +107,8 @@ class Validator(BaseValidatorNeuron):
                     self.is_seedhash_commited = self.commit_data({
                         "type": "seedhash",
                         "term": self.term + 1,
-                        "seedhash": hash(str(self.next_seed))
+                        "seedhash": hash(str(self.next_seed)),
+                        "benchmark_version": self.benchmark_version
                     })
                     bt.logging.info(f"Committed seed hash for term {self.term + 1}")
                     self.update_term_bias()
@@ -113,7 +119,7 @@ class Validator(BaseValidatorNeuron):
                 if self.groups == None:
                     self.groups = self.cluster_miners()
                 if not self.is_uploaded_group:
-                    self.is_uploaded_group = self.upload_state()
+                    self.is_uploaded_group = self.upload_state() is not None
                 # Commit seed
                 if self.is_uploaded_group and not self.is_seed_commited:
                     self.is_seed_commited = self.commit_data({
@@ -149,10 +155,14 @@ class Validator(BaseValidatorNeuron):
     def benchmark(self):
         bt.logging.info("Benchmarking thread started")
         benchmark_started = False
+        current_term = self.current_term
         while True:
             try:
                 current_block = self.subtensor_benchmark.get_current_block()
                 term_bias = (current_block - constants.ORIGIN_TERM_BLOCK) % constants.BLOCKS_PER_TERM
+                if current_term != self.current_term:
+                    bt.logging.info(f"New term {self.current_term}, exit benchmarking ...")
+                    break
                 if term_bias < constants.BLOCKS_START_BENCHMARK:
                     time.sleep(1)
                     continue
@@ -164,10 +174,6 @@ class Validator(BaseValidatorNeuron):
                     bt.logging.warning("No voted uid")
                     time.sleep(2)
                     break
-                if current_group_id >= len(self.voted_groups):
-                    bt.logging.info(f"No group info for {current_group_id}")
-                    time.sleep(2)
-                    continue
                 current_group = self.voted_groups[current_group_id]
                 bt.logging.info(f"Benchmarking group {current_group_id}: {current_group}")
 
@@ -188,8 +194,11 @@ class Validator(BaseValidatorNeuron):
                         }
                     else:
                         self.miner_status[uid]['benchmark'][self.current_term] = size / (arrived_at - benchmark_at)
+                
+                version = self.upload_to_wandb(f'benchmark-{self.uid}', f'benchmark-{self.current_term}', self.benchmark_state)
+                self.benchmark_version = version
 
-                if current_group_id >= len(self.voted_groups):
+                if current_group_id == len(self.voted_groups) - 1:
                     bt.logging.info("✅ Benchmarking finished")
                     break
                 time.sleep(0.1)
@@ -271,12 +280,26 @@ class Validator(BaseValidatorNeuron):
             artifact.add_file(file_path)
             self.wandb_run.log_artifact(artifact)
             artifact.wait()
-            bt.logging.info(f'Uploaded {filename}.json to wandb')
-            return True
+            bt.logging.info(f'Uploaded {filename}.json to wandb, ver: {artifact.version}')
+            return artifact.version
         except Exception as e:
             bt.logging.error(f'Error saving seed info: {e}')
             bt.logging.debug(traceback.format_exc())
-            return False
+            return None
+
+    def download_from_wandb(self, artifact_name, filename, version = 'latest'):
+        try:
+            artifact_url = f"{self.config.wandb.entity}/{self.config.wandb.project_name}/{artifact_name}:{version}"
+            artifact = wandb.use_artifact(artifact_url)
+            artifact_dir = artifact.download(self.config.neuron.full_path)
+            shared_file = os.path.join(artifact_dir, f"{filename}.json")
+            with open(shared_file, 'r') as f:
+                data = json.load(f)
+            return data
+        except Exception as e:
+            bt.logging.error(f'Error downloading seed info: {e}')
+            bt.logging.debug(traceback.format_exc())
+            return None
 
     def upload_state(self):
         """
@@ -315,6 +338,8 @@ class Validator(BaseValidatorNeuron):
         
         miner_uids = [uid for uid in self.metagraph.uids if self.metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE and self.metagraph.axons[uid].ip != "0.0.0.0" and self.miner_status[int(uid)]['job_id'] >= 0]
 
+        if len(miner_uids) == 0:
+            return []
 
         ips = [self.metagraph.axons[uid].ip for uid in miner_uids]
 
@@ -387,6 +412,59 @@ class Validator(BaseValidatorNeuron):
             uid_groups.append(uid_group)
         random.shuffle(uid_groups)
         return uid_groups
+
+    def should_set_weights(self) -> bool:
+        """
+        Returns True if the validator should set weights based on the current block height and the last time weights were set.
+        """
+        if self.is_set_weight:
+            return False
+        if self.term_bias >= constants.BLOCKS_SEEDHASH_END:
+            return super().should_set_weights()
+        return False
+    
+    def set_weights(self):
+        
+        bt.logging.info(f"Analyzing benchmarks for term-{self.term}")
+        # Get other validator's commits.
+        commits = []
+        validator_uids = [int(uid) for uid in self.metagraph.uids if self.metagraph.stake[uid] >= constants.VALIDATOR_MIN_STAKE]
+        for uid in validator_uids:
+            commit_data = self.get_commit_data(uid)
+            if commit_data is None:
+                continue
+            if commit_data['term'] != self.term or commit_data['block'] % constants.BLOCKS_PER_TERM > constants.BLOCKS_SHARE_SEED:
+                continue
+            commit_data['uid'] = uid
+            commits.append(commit_data)
+        bt.logging.info(f"Commits: {commits}")
+
+        # Download from wandb
+        for commit in commits:
+            data = self.download_from_wandb(f"benchmark-{commit['uid']}", f"benchmark-{self.term}", commit['benchmark_version'])
+            if data is None:
+                continue
+            commit['benchmark'] = data
+
+        responses = []
+        miner_uids = []
+        for i in range(256):
+            response = []
+            for commit in commits:
+                if i in commit['benchmark']:
+                    response.append(commit['benchmark'][i])
+            if len(response) > 0:
+                responses.append(response)
+                miner_uids.append(i)
+
+        # Adjust the scores based on responses from miners.
+        rewards = get_rewards(self, query=self.step, responses=responses)
+
+        bt.logging.info(f"Scored responses: {rewards}")
+        # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
+        self.update_scores(rewards, miner_uids)
+        self.is_set_weight = super().set_weights()
+        
     
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":

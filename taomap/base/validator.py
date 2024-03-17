@@ -305,6 +305,7 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.info("set_weights on chain successfully!")
         else:
             bt.logging.error("set_weights failed", msg)
+        return result
 
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
@@ -490,3 +491,5 @@ class BaseValidatorNeuron(BaseNeuron):
             )
         console = Console()
         console.print(table)
+
+    

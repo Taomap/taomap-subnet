@@ -20,7 +20,7 @@ import torch
 from typing import List
 
 
-def reward(query: int, response: int) -> float:
+def reward(query: int, response: List[float]) -> float:
     """
     Reward the miner response to the dummy request. This method returns a reward
     value for the miner, which is used to update the miner's score.
@@ -28,8 +28,15 @@ def reward(query: int, response: int) -> float:
     Returns:
     - float: The reward value for the miner.
     """
+    speeds = [1 / duration for duration in response]
+    # Sum the speeds,
+    speed_sum = sum(speeds)
+    if len(response) > 3:
+        speed_sum -= max(speeds)
+    if len(response) > 3:
+        speed_sum -= min(speeds)
 
-    return 1.0 if response == query * 2 else 0
+    return speed_sum
 
 
 def get_rewards(
