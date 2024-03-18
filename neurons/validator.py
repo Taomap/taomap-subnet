@@ -110,11 +110,11 @@ class Validator(BaseValidatorNeuron):
                 if not self.is_seedhash_commited:
                     self.is_seedhash_commited = self.commit_data({
                         "type": "seedhash",
-                        "term": self.term + 1,
+                        "term": self.term,
                         "seedhash": hash(str(self.next_seed)),
                         "benchmark_version": self.benchmark_version
                     })
-                    bt.logging.info(f"Committed seed hash for term {self.term + 1}")
+                    bt.logging.info(f"Committed seed hash for term {self.term}")
                     self.update_term_bias()
             
             # Commit seed of the current term
