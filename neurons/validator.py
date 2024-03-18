@@ -80,6 +80,7 @@ class Validator(BaseValidatorNeuron):
             self.benchmark_thread.join(1)
         self.benchmark_thread = None
         self.benchmark_version = None
+        self.benchmark_finished = False
         self.update_term_bias()
 
     def update_term_bias(self):
@@ -143,7 +144,7 @@ class Validator(BaseValidatorNeuron):
             
             # Benchmark
             if self.term_bias >= constants.BLOCKS_START_BENCHMARK and self.term_bias < constants.BLOCKS_SEEDHASH_START:
-                if self.benchmark_thread is None or not self.benchmark_thread.is_alive():
+                if not self.benchmark_finished and ( self.benchmark_thread is None or not self.benchmark_thread.is_alive() ):
                     self.start_benchmark_thread()
                 return
 
@@ -180,6 +181,7 @@ class Validator(BaseValidatorNeuron):
                 current_group_id = (term_bias - constants.BLOCKS_START_BENCHMARK) // constants.BLOCKS_PER_GROUP
                 if current_group_id >= len(self.voted_groups):
                     bt.logging.info("✅ Benchmarking finished")
+                    self.benchmark_finished = True
                     break
                 current_group = self.voted_groups[current_group_id] 
                 bt.logging.info(f"Benchmarking group {current_group_id}: {current_group}")
@@ -211,7 +213,7 @@ class Validator(BaseValidatorNeuron):
                     time.sleep(1)
                     current_block = self.subtensor_benchmark.get_current_block()
                     term_bias = (current_block - constants.ORIGIN_TERM_BLOCK) % constants.BLOCKS_PER_TERM
-                    
+
             except BaseException as e:
                 bt.logging.error(f"Error benchmarking: {e}")
                 bt.logging.debug(traceback.format_exc())
