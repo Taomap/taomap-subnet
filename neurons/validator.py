@@ -244,7 +244,7 @@ class Validator(BaseValidatorNeuron):
 
         # Get all shared seeds
         for commit in commits:
-            data = self.download_from_wandb(f"state-{commit['uid']}", f"{commit['term']}", commit['version'])
+            data = self.download_from_wandb(f"state-{commit['uid']}", f"{self.term }", commit['version'])
             if not data:
                 commit['valid'] = False
                 bt.logging.warning(f"Error getting shared seed for {commit['uid']}")
@@ -293,7 +293,7 @@ class Validator(BaseValidatorNeuron):
 
     def download_from_wandb(self, artifact_name, filename, version = 'latest'):
         try:
-            artifact_url = f"{self.config.wandb.entity}/{self.config.wandb.project_name}/{artifact_name}:{version}"
+            artifact_url = f"{self.config.wandb.entity}/{constants.WANDB_PROJECT}/{artifact_name}:{version}"
             artifact = wandb.use_artifact(artifact_url)
             artifact_dir = artifact.download(self.config.neuron.full_path)
             shared_file = os.path.join(artifact_dir, f"{filename}.json")
@@ -301,7 +301,7 @@ class Validator(BaseValidatorNeuron):
                 data = json.load(f)
             return data
         except Exception as e:
-            bt.logging.error(f'Error downloading seed info: {e}')
+            bt.logging.error(f'Error downloading wandb artifact: {e}')
             bt.logging.debug(traceback.format_exc())
             return None
 
