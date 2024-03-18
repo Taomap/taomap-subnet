@@ -228,11 +228,11 @@ class Validator(BaseValidatorNeuron):
         commits = []
         for uid in validator_uids:
             commit_data = self.get_commit_data(uid)
-            bt.logging.debug(f"Commit data {uid}: {commit_data}")
+            bt.logging.info(f"Commit data {uid}: {commit_data}")
             if commit_data is None:
                 continue
             if commit_data['term'] != self.term or commit_data['block'] % constants.BLOCKS_PER_TERM > constants.BLOCKS_SHARE_SEED:
-                bt.logging.debug(f"{uid} {commit_data} is not valid for term {self.term}")
+                bt.logging.info(f"{uid} {commit_data} is not valid for term {self.term}")
                 continue
             commits.append({
                 "uid": uid,
@@ -243,7 +243,7 @@ class Validator(BaseValidatorNeuron):
                 "grouphash": commit_data["grouphash"],
                 "version": commit_data["version"],
             })
-        print("Commits: ", commits)
+        bt.logging.info("Commits: ", commits)
 
         # Get all shared seeds
         for commit in commits:
@@ -259,10 +259,8 @@ class Validator(BaseValidatorNeuron):
             commit['valid'] = True
             commit['groups'] = data['groups']
 
-        print("Commits with groups and seeds: ", commits)
-        if len(commits) == 0:
-            bt.logging.warning("No valid commits")
-            return None, []
+        bt.logging.info("Commits with groups and seeds: ", commits)
+
         valid_commits = [commit for commit in commits if commit['valid']]
 
         if len(valid_commits) == 0:
@@ -272,8 +270,8 @@ class Validator(BaseValidatorNeuron):
         sum_of_seeds = sum(commit['seed'] for commit in valid_commits)
         voted_commit = valid_commits[sum_of_seeds % len(valid_commits)]
 
-        print(f"Voted uid: {voted_commit['uid']}, seed sum: {sum_of_seeds}")
-        print(f"Voted groups: {voted_commit['groups']}")
+        bt.logging.success(f"Voted validator uid: {voted_commit['uid']}, seed sum: {sum_of_seeds}")
+        bt.logging.info(f"Voted groups: {voted_commit['groups']}")
 
         return voted_commit['uid'], voted_commit['groups']
         
@@ -442,7 +440,8 @@ class Validator(BaseValidatorNeuron):
             commit_data = self.get_commit_data(uid)
             if commit_data is None:
                 continue
-            if commit_data['term'] != self.term or commit_data['block'] % constants.BLOCKS_PER_TERM > constants.BLOCKS_SHARE_SEED:
+            commit_term_bias = commit_data['block'] % constants.BLOCKS_PER_TERM
+            if commit_data['term'] != self.term or not (commit_term_bias >= constants.BLOCKS_SEEDHASH_START and commit_term_bias < constants.BLOCKS_SEEDHASH_END)
                 continue
             commit_data['uid'] = uid
             commits.append(commit_data)
