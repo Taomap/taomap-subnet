@@ -161,9 +161,9 @@ class Validator(BaseValidatorNeuron):
         benchmark_started = False
         current_term = self.current_term
         current_block = self.subtensor_benchmark.get_current_block()
+        term_bias = (current_block - constants.ORIGIN_TERM_BLOCK) % constants.BLOCKS_PER_TERM
         while True:
             try:
-                term_bias = (current_block - constants.ORIGIN_TERM_BLOCK) % constants.BLOCKS_PER_TERM
                 if current_term != self.current_term:
                     bt.logging.info(f"New term {self.current_term}, exit benchmarking ...")
                     break
@@ -206,11 +206,12 @@ class Validator(BaseValidatorNeuron):
                 self.benchmark_version = version
 
                 # wait for the next group
-                block_height = self.subtensor_benchmark.get_current_block()
-                while current_block == block_height:
+                old_term_bias = term_bias
+                while old_term_bias == term_bias:
                     time.sleep(1)
-                    block_height = self.subtensor_benchmark.get_current_block()
-                current_block == block_height
+                    current_block = self.subtensor_benchmark.get_current_block()
+                    term_bias = (current_block - constants.ORIGIN_TERM_BLOCK) % constants.BLOCKS_PER_TERM
+                    
             except BaseException as e:
                 bt.logging.error(f"Error benchmarking: {e}")
                 bt.logging.debug(traceback.format_exc())
