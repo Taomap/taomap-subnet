@@ -441,7 +441,7 @@ class Validator(BaseValidatorNeuron):
             if commit_data is None:
                 continue
             commit_term_bias = commit_data['block'] % constants.BLOCKS_PER_TERM
-            if commit_data['term'] != self.term or not (commit_term_bias >= constants.BLOCKS_SEEDHASH_START and commit_term_bias < constants.BLOCKS_SEEDHASH_END)
+            if commit_data['term'] != self.term or not (commit_term_bias >= constants.BLOCKS_SEEDHASH_START and commit_term_bias < constants.BLOCKS_SEEDHASH_END):
                 continue
             commit_data['uid'] = uid
             commits.append(commit_data)
