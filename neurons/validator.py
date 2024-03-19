@@ -458,14 +458,15 @@ class Validator(BaseValidatorNeuron):
         
         # Filter out commits without benchmarks
         commits = [commit for commit in commits if 'benchmark' in commit]
+        bt.logging.info(f"Commits with benchmarks: {commits}")
 
         responses = []
         miner_uids = []
         for i in range(256):
             response = []
             for commit in commits:
-                if i in commit['benchmark']:
-                    response.append(commit['benchmark'][i])
+                if str(i) in commit['benchmark']:
+                    response.append(commit['benchmark'][str(i)])
             if len(response) > 0:
                 responses.append(response)
                 miner_uids.append(i)
