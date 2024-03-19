@@ -28,7 +28,7 @@ def reward(query: int, response: List[float]) -> float:
     Returns:
     - float: The reward value for the miner.
     """
-    speeds = [1 / duration for duration in response]
+    speeds = [1 / duration if duration > 0 else 0 for duration in response]
     # Sum the speeds,
     speed_sum = sum(speeds)
     if len(response) > 3:
