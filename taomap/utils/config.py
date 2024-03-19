@@ -227,7 +227,7 @@ def add_validator_args(cls, parser):
         help="The maximum number of TAO allowed to query a validator with a vpermit.",
         default=4096,
     )
-    
+
     parser.add_argument(
         "--wandb.entity",
         type=str,
@@ -235,7 +235,7 @@ def add_validator_args(cls, parser):
         default="taomap",
     )
 
-    parser.add_argument("--alpha", default=0.9, type=float, help="The weight moving average scoring.py.")
+    parser.add_argument("--alpha", default=0.7, type=float, help="The weight moving average scoring.py.")
     
 
 def config(cls):
