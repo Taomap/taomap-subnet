@@ -16,7 +16,7 @@
 # Introduction
 
 
-The Bittensor Subnet 10 (Map Reduce Subnet) incentivizes miners by offering rewards for contributing network bandwidth and memory resources.
+The Bittensor Subnet 10 (Taomap Subnet) incentivizes miners by offering rewards for contributing network bandwidth and memory resources.
 
 A broadcast subnet leverages the bandwidth of multiple peers to transfer large data from point to A to multiple point Bs without needing to leverage large quantities of your own upload. The concept is simple, a large file D can be split into multiple chunks and sent to N intermediate peers (usually with redundancy) and then forwarded onward to B additional endpoints in an N by B full bipartite fashion. The inverse operation is also valuable, where data DxB large data files can be aggregated from B peers by leveraging the bandwidth of N intermediaries. 
 
@@ -27,7 +27,7 @@ The map-reduce cycle is essential for reducing the bandwidth by a factor of K on
 ---
 
 # How it works
-![Map Reduce Diagram](map_reduce.svg)
+![Taomap Diagram](map_reduce.svg)
 
 The diagram illustrates the workflow of a distributed map-reduce system with an integrated validation mechanism:
 
@@ -53,9 +53,14 @@ The validator's role is to confirm that the miners' computations are accurate an
 This system ensures the distributed processing of data with a check-and-balance system provided by the validator. This validation step is crucial for maintaining the reliability of the distributed computation, especially in decentralized or trustless environments where the computation's correctness cannot be taken for granted.
 
 # Installation
-This repository requires python3.8 or higher. To install, simply clone this repository and install the requirements.
+
+See [Miner Setup](docs/miner.md#getting-started) to learn how to setup a Miner.
+
+See [Validator Setup](docs/validator.md#getting-started) to learn how to setup a Validator.
 
 ## Install Dependencies
+This repository requires python3.8 or higher. To install, simply clone this repository and install the requirements.
+
 ```bash
 git clone https://github.com/Taomap/taomap-subnet.git
 cd taomap-subnet
@@ -82,7 +87,7 @@ Run the miner using the following script:
 
 ```bash
 # To run the miner wiht auto update
-pm2 start --name net10-miner-updater --interpreter python3 scripts/start_miner.py -- --pm2_name net10-miner --netuid 10 --wallet.name walletname --wallet.hotkey hotkey
+pm2 start --name taomap-miner-updater --interpreter python3 scripts/start_miner.py -- --pm2_name taomap-miner --netuid 10 --wallet.name walletname --wallet.hotkey hotkey
 ```
 
 Important Note: Operating multiple miners from a single machine (using the same IP address) may result in reduced rewards. For optimal performance and reward maximization, it is recommended to run each miner on a separate machine.
