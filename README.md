@@ -1,7 +1,7 @@
 
 <div align="center">
 
-# **Bittensor Map Reduce** <!-- omit in toc -->
+# **Bittensor Taomap** <!-- omit in toc -->
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.com/channels/799672011265015819/1163969538191269918)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
