@@ -208,11 +208,12 @@ class Validator(BaseValidatorNeuron):
                 self.benchmark_version = version
 
                 # wait for the next group
-                old_term_bias = term_bias
-                while old_term_bias == term_bias:
+                old_group_id = current_group_id
+                while old_group_id == current_group_id:
                     time.sleep(1)
                     current_block = self.subtensor_benchmark.get_current_block()
                     term_bias = (current_block - constants.ORIGIN_TERM_BLOCK) % constants.BLOCKS_PER_TERM
+                    current_group_id = (term_bias - constants.BLOCKS_START_BENCHMARK) // constants.BLOCKS_PER_GROUP
 
             except BaseException as e:
                 bt.logging.error(f"Error benchmarking: {e}")
