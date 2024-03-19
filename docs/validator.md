@@ -41,7 +41,7 @@ To install and run a local subtensor node follow the commands below with Docker 
 git clone https://github.com/opentensor/subtensor.git
 cd subtensor
 docker compose up --detach
-```6
+```
 ---
 
 # Running the Validator
