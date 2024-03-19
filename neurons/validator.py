@@ -346,7 +346,7 @@ class Validator(BaseValidatorNeuron):
         if self.miner_status is None:
             return []
         
-        miner_uids = [uid for uid in self.metagraph.uids if self.metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE and self.metagraph.axons[uid].ip != "0.0.0.0" and self.miner_status[int(uid)]['job_id'] >= 0]
+        miner_uids = [uid for uid in self.metagraph.uids if self.metagraph.axons[uid].ip != "0.0.0.0" and self.miner_status[int(uid)]['job_id'] >= 0]
 
         if len(miner_uids) == 0:
             return []
