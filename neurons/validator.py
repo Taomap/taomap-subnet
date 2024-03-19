@@ -100,7 +100,7 @@ class Validator(BaseValidatorNeuron):
         try: 
             self.update_term_bias()
             bt.logging.info(f"Current block height: {self.block_height}, current term: {self.current_term}, blocks: {self.term_bias}")
-            if self.current_term > self.term:
+            if self.current_term != self.term:
                 bt.logging.info(f"New term {self.current_term}")
                 self.term = self.current_term
                 self.init_term_variables()

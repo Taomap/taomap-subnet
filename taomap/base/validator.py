@@ -405,7 +405,6 @@ class BaseValidatorNeuron(BaseNeuron):
         # self.step = state["step"]
         self.scores = state["scores"]
         self.hotkeys = state["hotkeys"]
-        self.term = state["term"]
         self.is_seed_shared = state["seed_shared"]
         self.is_set_weight = state["set_weights"]
         bt.logging.info(f"Loaded state: {state}")
