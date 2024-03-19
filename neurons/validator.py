@@ -287,6 +287,7 @@ class Validator(BaseValidatorNeuron):
             self.wandb_run.log_artifact(artifact)
             artifact.wait()
             bt.logging.info(f'Uploaded {filename}.json to wandb, ver: {artifact.version}')
+            os.remove(file_path)
             return artifact.version
         except Exception as e:
             bt.logging.error(f'Error saving seed info: {e}')
@@ -301,6 +302,8 @@ class Validator(BaseValidatorNeuron):
             shared_file = os.path.join(artifact_dir, f"{filename}.json")
             with open(shared_file, 'r') as f:
                 data = json.load(f)
+            bt.logging.info(f'Downloaded {filename}.json from wandb')
+            os.remove(shared_file)
             return data
         except Exception as e:
             bt.logging.error(f'Error downloading wandb artifact: {e}')
