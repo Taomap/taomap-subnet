@@ -449,7 +449,7 @@ class Validator(BaseValidatorNeuron):
 
         # Download from wandb
         for commit in commits:
-            if 'benchmark_version' not in commit:
+            if 'benchmark_version' not in commit or commit['benchmark_version'] is None:
                 continue
             data = self.download_from_wandb(f"benchmark-{commit['uid']}", f"benchmark-{self.term}", commit['benchmark_version'])
             if data is None:
