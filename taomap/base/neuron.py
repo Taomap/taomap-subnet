@@ -220,8 +220,8 @@ class BaseNeuron(ABC):
         return True
 
     def commit_data(self, data: dict[str, any]):
-        if self.config.subtensor.network == 'test':
-            return self.commit_data_mock(data)
+        # if self.config.subtensor.network == 'test':
+        #     return self.commit_data_mock(data)
         commit_str = json.dumps(data)
         try:
             self.subtensor.commit(self.wallet, self.config.netuid, commit_str)
@@ -240,8 +240,8 @@ class BaseNeuron(ABC):
         return response.json()
 
     def get_commit_data(self, uid):
-        if self.config.subtensor.network == 'test':
-            return self.get_commit_data_mock(uid)
+        # if self.config.subtensor.network == 'test':
+        #     return self.get_commit_data_mock(uid)
         try:
             metadata = bt.extrinsics.serving.get_metadata(self.subtensor, self.config.netuid, self.hotkeys[uid] )
             if metadata is None:
