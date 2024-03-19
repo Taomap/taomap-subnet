@@ -103,6 +103,7 @@ class Validator(BaseValidatorNeuron):
             if self.current_term != self.term:
                 bt.logging.info(f"New term {self.current_term}")
                 self.term = self.current_term
+                self.load_configuration()
                 self.init_term_variables()
 
             # Commit hash of the next term seed
