@@ -360,9 +360,8 @@ class Validator(BaseValidatorNeuron):
 
         for uid in miner_uids:
             ip = self.metagraph.axons[uid].ip
-            stake = self.metagraph.stake[uid]
             
-            if stake < constants.VALIDATOR_MIN_STAKE and ip != "0.0.0.0" and ip not in unique_ips:
+            if ip != "0.0.0.0" and ip not in unique_ips:
                 unique_ips.add(ip)
                 filtered_miner_uids.append(uid)
 
