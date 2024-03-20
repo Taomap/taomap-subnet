@@ -452,7 +452,7 @@ class BaseValidatorNeuron(BaseNeuron):
     def update_miner_status(self):
         
         metagraph = self.subtensor_sync.metagraph(self.config.netuid)
-        miner_uids = [uid for uid in metagraph.uids if metagraph.stake[uid] < constants.VALIDATOR_MIN_STAKE and metagraph.axons[uid].ip != "0.0.0.0" ]
+        miner_uids = [uid for uid in metagraph.uids if metagraph.axons[uid].ip != "0.0.0.0" ]
         axons = [metagraph.axons[uid] for uid in miner_uids]
         synapse = taomap.protocol.MinerStatus(version=constants.__version__)
         responses = self.dendrite.query(axons, synapse, timeout = 3, deserialize = True)
