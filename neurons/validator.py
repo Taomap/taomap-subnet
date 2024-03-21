@@ -106,9 +106,6 @@ class Validator(BaseValidatorNeuron):
                 self.load_configuration()
                 self.init_term_variables()
 
-            if self.voted_uid is None:
-                self.voted_uid, self.voted_groups = self.get_vote_result()
-
             # Commit hash of the next term seed
             if self.term_bias >= constants.BLOCKS_SEEDHASH_START and self.term_bias < constants.BLOCKS_SEEDHASH_END:
                 if not self.is_seedhash_commited:
@@ -142,7 +139,7 @@ class Validator(BaseValidatorNeuron):
                 self.update_term_bias()
                                 
             # Get all validator's commits and groups, seeds.
-            if self.term_bias >= constants.BLOCKS_SHARE_SEED and self.term_bias <= constants.BLOCKS_START_BENCHMARK:
+            if self.term_bias >= constants.BLOCKS_SHARE_SEED:
                 if self.voted_uid is None:
                     self.voted_uid, self.voted_groups = self.get_vote_result()
             
