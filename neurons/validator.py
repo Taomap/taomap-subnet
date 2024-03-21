@@ -372,16 +372,18 @@ class Validator(BaseValidatorNeuron):
         numerical_ips = np.array([ip_to_int(ip) for ip in ips]).reshape(-1, 1)
         
         group_count = len(miner_uids) // 4
-        # Use K-Means to cluster IPs into 64 groups
-        kmeans = KMeans(n_clusters=group_count, random_state=random.randint(0, 100)).fit(numerical_ips)
-        labels = kmeans.labels_
-
-        # Group IPs based on labels
         groups = {}
-        for i, label in enumerate(labels):
-            if label not in groups:
-                groups[label] = []
-            groups[label].append(ips[i])
+
+        if group_count > 0:
+            # Use K-Means to cluster IPs into 64 groups
+            kmeans = KMeans(n_clusters=group_count, random_state=random.randint(0, 100)).fit(numerical_ips)
+            labels = kmeans.labels_
+
+            # Group IPs based on labels
+            for i, label in enumerate(labels):
+                if label not in groups:
+                    groups[label] = []
+                groups[label].append(ips[i])
 
         # Convert groups to a list of lists (each sub-list is a group of IPs)
         groups_list = list(groups.values())
