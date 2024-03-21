@@ -479,6 +479,9 @@ class Validator(BaseValidatorNeuron):
                 responses.append(response)
                 miner_uids.append(i)
 
+        if len(responses) == 0:
+            return
+
         # Adjust the scores based on responses from miners.
         rewards = get_rewards(self, query=self.step, responses=responses)
 
