@@ -94,8 +94,8 @@ class Miner(BaseMinerNeuron):
     async def forward_miner_status(self, synapse: taomap.protocol.MinerStatus) -> taomap.protocol.MinerStatus:
         try:
             caller_uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
-            synapse.stake = self.metagraph.stake[caller_uid]
-            if synapse.stake >= constants.VALIDATOR_MIN_STAKE:
+            stake = self.metagraph.stake[caller_uid]
+            if stake >= constants.VALIDATOR_MIN_STAKE:
                 bt.logging.info(f"Miner status request from validator-{caller_uid} {synapse.dendrite.hotkey[:5]}")
         except:
             ...
