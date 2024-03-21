@@ -106,6 +106,9 @@ class Validator(BaseValidatorNeuron):
                 self.load_configuration()
                 self.init_term_variables()
 
+            if self.voted_uid is None:
+                self.voted_uid, self.voted_groups = self.get_vote_result()
+
             # Commit hash of the next term seed
             if self.term_bias >= constants.BLOCKS_SEEDHASH_START and self.term_bias < constants.BLOCKS_SEEDHASH_END:
                 if not self.is_seedhash_commited:
@@ -233,7 +236,7 @@ class Validator(BaseValidatorNeuron):
             bt.logging.info(f"Commit data {uid}: {commit_data}")
             if commit_data is None:
                 continue
-            if commit_data['term'] != self.term or commit_data['block'] % constants.BLOCKS_PER_TERM > constants.BLOCKS_SHARE_SEED:
+            if commit_data['term'] != self.term or self.get_term_bias(commit_data['block']) > constants.BLOCKS_SHARE_SEED:
                 bt.logging.info(f"{uid} {commit_data} is not valid for term {self.term}")
                 continue
             commits.append({
@@ -448,7 +451,7 @@ class Validator(BaseValidatorNeuron):
             commit_data = self.get_commit_data(uid)
             if commit_data is None:
                 continue
-            commit_term_bias = commit_data['block'] % constants.BLOCKS_PER_TERM
+            commit_term_bias = self.get_term_bias(commit_data['block'])
             if commit_data['term'] != self.term or not (commit_term_bias >= constants.BLOCKS_SEEDHASH_START and commit_term_bias < constants.BLOCKS_SEEDHASH_END):
                 continue
             commit_data['uid'] = uid

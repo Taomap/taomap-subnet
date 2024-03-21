@@ -184,7 +184,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
                     # Sync metagraph and potentially set weights.
                     self.sync()
-                    
+
                 # In case of unforeseen errors, the validator will log the error and continue operations.
                 except BaseException as err:
                     bt.logging.error("Error during validation", str(err))
@@ -495,4 +495,5 @@ class BaseValidatorNeuron(BaseNeuron):
         console = Console()
         console.print(table)
 
-    
+    def get_term_bias(self, block):
+        return (block - constants.ORIGIN_TERM_BLOCK) % constants.BLOCKS_PER_TERM
