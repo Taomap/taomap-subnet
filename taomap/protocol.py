@@ -52,7 +52,7 @@ class Job (pydantic.BaseModel):
 A specialized Synapse representing the status of a miner, 
 including its availability and memory resources.
 """
-class MinerStatus( MapSynapse ):
+class Status( MapSynapse ):
     job_id: Optional[int] = None
 
     def deserialize(self):

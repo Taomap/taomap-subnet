@@ -91,7 +91,7 @@ class Miner(BaseMinerNeuron):
         )
         return prirority
 
-    async def forward_miner_status(self, synapse: taomap.protocol.MinerStatus) -> taomap.protocol.MinerStatus:
+    async def forward_miner_status(self, synapse: taomap.protocol.Status) -> taomap.protocol.Status:
         try:
             caller_uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
             stake = self.metagraph.stake[caller_uid]

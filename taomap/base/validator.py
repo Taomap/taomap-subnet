@@ -454,7 +454,7 @@ class BaseValidatorNeuron(BaseNeuron):
         metagraph = self.subtensor_sync.metagraph(self.config.netuid)
         miner_uids = [uid for uid in metagraph.uids if metagraph.axons[uid].ip != "0.0.0.0" ]
         axons = [metagraph.axons[uid] for uid in miner_uids]
-        synapse = taomap.protocol.MinerStatus(version=constants.__version__)
+        synapse = taomap.protocol.Status(version=constants.__version__)
         responses = self.dendrite.query(axons, synapse, timeout = 3, deserialize = True)
         # if all response are None, then we assume all miners are offline
         if all([response[0] < 0 for response in responses]):
