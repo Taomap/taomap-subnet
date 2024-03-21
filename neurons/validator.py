@@ -249,6 +249,8 @@ class Validator(BaseValidatorNeuron):
 
         # Get all shared seeds
         for commit in commits:
+            if commit['version'] is None:
+                continue
             data = self.download_from_wandb(f"state-{commit['uid']}", f"{self.term }", commit['version'])
             if not data:
                 commit['valid'] = False

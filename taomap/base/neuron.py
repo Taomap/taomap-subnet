@@ -238,10 +238,16 @@ class BaseNeuron(ABC):
             bt.logging.error(f"Error getting commitment: {response.text}")
             return None
         return response.json()
+    
+    def get_commit_data_from_api(self, uid):
+        response = requests.get(f"{constants.API_URL}/mainnet/commit/{uid}")
+        if response.status_code != 200:
+            bt.logging.error(f"Error getting commitment: {response.text}")
+            return None
+        return response.json()
 
     def get_commit_data(self, uid):
-        # if self.config.subtensor.network == 'test':
-        #     return self.get_commit_data_mock(uid)
+        return self.get_commit_data_from_api(uid)
         try:
             metadata = bt.extrinsics.serving.get_metadata(self.subtensor, self.config.netuid, self.hotkeys[uid] )
             if metadata is None:
