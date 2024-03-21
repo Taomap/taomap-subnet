@@ -174,15 +174,23 @@ class BaseValidatorNeuron(BaseNeuron):
             while True:
                 bt.logging.info(f"step({self.step}) block({self.block})")
 
-                # Run multiple forwards concurrently.
-                self.loop.run_until_complete(self.concurrent_forward())
+                try:
+                    # Run multiple forwards concurrently.
+                    self.loop.run_until_complete(self.concurrent_forward())
 
-                # Check if we should exit.
-                if self.should_exit:
-                    break
+                    # Check if we should exit.
+                    if self.should_exit:
+                        break
 
-                # Sync metagraph and potentially set weights.
-                self.sync()
+                    # Sync metagraph and potentially set weights.
+                    self.sync()
+                    
+                # In case of unforeseen errors, the validator will log the error and continue operations.
+                except BaseException as err:
+                    bt.logging.error("Error during validation", str(err))
+                    bt.logging.debug(
+                        print_exception(type(err), err, err.__traceback__)
+                    )
 
                 self.step += 1
 
@@ -194,12 +202,6 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.success("Validator killed by keyboard interrupt.")
             exit()
 
-        # In case of unforeseen errors, the validator will log the error and continue operations.
-        except BaseException as err:
-            bt.logging.error("Error during validation", str(err))
-            bt.logging.debug(
-                print_exception(type(err), err, err.__traceback__)
-            )
 
     def run_in_background_thread(self):
         """
