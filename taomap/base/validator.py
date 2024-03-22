@@ -262,7 +262,7 @@ class BaseValidatorNeuron(BaseNeuron):
         wait_for_finalization,
         wait_for_inclusion,
         version_key,
-        ttl: int = 24):
+        ttl: int = 36):
         async def _try_set_weights():
             try:
                 self.subtensor.set_weights(
@@ -281,8 +281,11 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.debug(f"Setting weights.")
             await asyncio.wait_for(_try_set_weights(), ttl)
             bt.logging.debug(f"Finished setting weights.")
+            return True
         except asyncio.TimeoutError:
             bt.logging.error(f"Failed to set weights after {ttl} seconds")
+        
+        return False
 
     def set_weights(self):
         """
@@ -326,7 +329,7 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.debug("uint_uids", uint_uids)
         bt.logging.debug("weight version", self.spec_version)
         # Set the weights on chain via our subtensor connection.
-        result, msg = self.try_set_weights(
+        result = self.try_set_weights(
             wallet=self.wallet,
             netuid=self.config.netuid,
             uids=uint_uids,
@@ -334,12 +337,8 @@ class BaseValidatorNeuron(BaseNeuron):
             wait_for_finalization=True,
             wait_for_inclusion=False,
             version_key=self.spec_version,
-            ttl=60,
+            ttl=36,
         )
-        if result is True:
-            bt.logging.info("set_weights on chain successfully!")
-        else:
-            bt.logging.error("set_weights failed", msg)
         return result
 
     def resync_metagraph(self):
