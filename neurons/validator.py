@@ -82,6 +82,7 @@ class Validator(BaseValidatorNeuron):
         self.benchmark_version = None
         self.benchmark_finished = False
         self.update_term_bias()
+        self.is_score_calculated = False
 
     def update_term_bias(self):
         self.block_height = self.subtensor.get_current_block()
@@ -439,9 +440,8 @@ class Validator(BaseValidatorNeuron):
             return super().should_set_weights()
         return False
     
-    def set_weights(self):
-        
-        bt.logging.info(f"Analyzing benchmarks for term-{self.term}")
+    def calculate_scores(self):
+        bt.logging.info(f"Calculating scores for term-{self.term}")
         # Get other validator's commits.
         commits = []
         validator_uids = [int(uid) for uid in self.metagraph.uids if self.metagraph.stake[uid] >= constants.VALIDATOR_MIN_STAKE]
@@ -489,6 +489,12 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info(f"Scored responses: {rewards}")
         # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
         self.update_scores(rewards, miner_uids)
+        self.is_score_calculated = True
+
+    def set_weights(self):
+        
+        if not self.is_score_calculated:
+            self.calculate_scores()
         self.is_set_weight = super().set_weights()
         
     
