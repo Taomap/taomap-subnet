@@ -433,14 +433,17 @@ class BaseValidatorNeuron(BaseNeuron):
         if not os.path.exists(state_path):
             bt.logging.info(f"No state file found at {state_path}.")
             return
-        state = torch.load(self.config.neuron.full_path + "/state.pt")
-        # self.step = state["step"]
-        self.scores = state["scores"]
-        self.hotkeys = state["hotkeys"]
-        self.is_seed_shared = state["seed_shared"]
-        self.is_set_weight = state["set_weights"]
-        bt.logging.info(f"Loaded state: {state}")
-
+        try:
+            state = torch.load(self.config.neuron.full_path + "/state.pt")
+            # self.step = state["step"]
+            self.scores = state["scores"]
+            self.hotkeys = state["hotkeys"]
+            self.is_seed_shared = state["seed_shared"]
+            self.is_set_weight = state["set_weights"]
+            bt.logging.info(f"Loaded state: {state}")
+        except BaseException as e:
+            bt.logging.error(f"Failed to load state with exception: {e}")
+            bt.logging.debug(traceback.format_exc())
     
     def new_wandb_run(self):
         """Creates a new wandb run to save information to."""
