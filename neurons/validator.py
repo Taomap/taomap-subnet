@@ -164,6 +164,7 @@ class Validator(BaseValidatorNeuron):
         current_term = self.current_term
         current_block = self.subtensor_benchmark.get_current_block()
         term_bias = (current_block - constants.ORIGIN_TERM_BLOCK) % constants.BLOCKS_PER_TERM
+        self.benchmark_state = self.download_from_wandb(f'benchmark-{self.uid}', f'benchmark-{self.current_term}')
         while True:
             try:
                 if current_term != self.current_term:
