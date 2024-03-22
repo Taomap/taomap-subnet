@@ -254,6 +254,36 @@ class BaseValidatorNeuron(BaseNeuron):
             self.is_running = False
             bt.logging.debug("Stopped")
 
+    async def try_set_weights(self, 
+        wallet,
+        netuid,
+        uids,
+        weights,
+        wait_for_finalization,
+        wait_for_inclusion,
+        version_key,
+        ttl: int = 24):
+        async def _try_set_weights():
+            try:
+                self.subtensor.set_weights(
+                    wallet=wallet,
+                    netuid=netuid,
+                    uids=uids,
+                    weights=weights,
+                    wait_for_finalization=wait_for_finalization,
+                    wait_for_inclusion=wait_for_inclusion,
+                    version_key=version_key,
+                )
+            except:
+                bt.logging.warning("Failed to set weights. Trying again later.")
+
+        try:
+            bt.logging.debug(f"Setting weights.")
+            await asyncio.wait_for(_try_set_weights(), ttl)
+            bt.logging.debug(f"Finished setting weights.")
+        except asyncio.TimeoutError:
+            bt.logging.error(f"Failed to set weights after {ttl} seconds")
+
     def set_weights(self):
         """
         Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
@@ -296,7 +326,7 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.debug("uint_uids", uint_uids)
         bt.logging.debug("weight version", self.spec_version)
         # Set the weights on chain via our subtensor connection.
-        result, msg = self.subtensor.set_weights(
+        result, msg = self.try_set_weights(
             wallet=self.wallet,
             netuid=self.config.netuid,
             uids=uint_uids,
@@ -304,6 +334,7 @@ class BaseValidatorNeuron(BaseNeuron):
             wait_for_finalization=True,
             wait_for_inclusion=False,
             version_key=self.spec_version,
+            ttl=60,
         )
         if result is True:
             bt.logging.info("set_weights on chain successfully!")
