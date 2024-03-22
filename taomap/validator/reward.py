@@ -31,9 +31,9 @@ def reward(query: int, response: List[float]) -> float:
     speeds = [1 / duration if duration > 0 else 0 for duration in response]
     # Sum the speeds,
     speed_sum = sum(speeds)
-    if len(response) > 3:
+    if len(response) > 15:
         speed_sum -= max(speeds)
-    if len(response) > 3:
+    if len(response) > 15:
         speed_sum -= min(speeds)
 
     return speed_sum
