@@ -389,7 +389,6 @@ class BaseValidatorNeuron(BaseNeuron):
                 "hotkeys": self.hotkeys,
                 "term": self.term,
                 "seed_shared": self.is_seed_shared,
-                "set_weights": self.is_set_weight,
             },
             self.config.neuron.full_path + "/state.pt",
         )
@@ -409,7 +408,6 @@ class BaseValidatorNeuron(BaseNeuron):
             self.scores = state["scores"]
             self.hotkeys = state["hotkeys"]
             self.is_seed_shared = state["seed_shared"]
-            self.is_set_weight = state["set_weights"]
             bt.logging.info(f"Loaded state: {state}")
         except BaseException as e:
             bt.logging.error(f"Failed to load state with exception: {e}")
