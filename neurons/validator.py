@@ -497,7 +497,7 @@ class Validator(BaseValidatorNeuron):
         
         if not self.is_score_calculated:
             self.calculate_scores()
-        self.is_set_weight = super().set_weights()
+        super().set_weights()
         
     
 # The main function parses the configuration and runs the validator.
