@@ -65,7 +65,6 @@ class Validator(BaseValidatorNeuron):
     def init_term_variables(self):
         self.is_seedhash_commited = False
         self.is_seed_commited = False
-        self.is_set_weight = False
         self.is_seed_shared = False
         if not hasattr(self, 'next_seed'):
             self.next_seed = 0
@@ -435,8 +434,6 @@ class Validator(BaseValidatorNeuron):
         Returns True if the validator should set weights based on the current block height and the last time weights were set.
         """
         if not super().should_set_weights():
-            return False
-        if self.is_set_weight:
             return False
         if self.term_bias >= constants.BLOCKS_SEEDHASH_END:
             return super().should_set_weights()
