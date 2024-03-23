@@ -107,6 +107,8 @@ class BaseValidatorNeuron(BaseNeuron):
         # Initialize variables
         self.last_status_updated: int = None
         self.miner_status: dict = None
+        
+        self.last_run = time.time()
 
     def serve_axon(self):
         """Serve axon to enable external connections."""
@@ -175,6 +177,7 @@ class BaseValidatorNeuron(BaseNeuron):
                 bt.logging.info(f"step({self.step}) block({self.block})")
 
                 try:
+                    self.last_run = time.time()
                     # Run multiple forwards concurrently.
                     self.loop.run_until_complete(self.concurrent_forward())
 
@@ -302,7 +305,7 @@ class BaseValidatorNeuron(BaseNeuron):
             uids=uint_uids,
             weights=uint_weights,
             wait_for_finalization=False,
-            wait_for_inclusion=True,
+            wait_for_inclusion=False,
             version_key=self.spec_version,
         )
         if result is True:

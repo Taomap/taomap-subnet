@@ -495,7 +495,18 @@ class Validator(BaseValidatorNeuron):
         if not self.is_score_calculated:
             self.calculate_scores()
         super().set_weights()
-        
+
+    def check_threads(self):
+        if time.time() - self.last_run > 100:
+            bt.logging.info("🔨 Restarting validator thread")
+            self.thread.join(3)
+            self.thread.start()
+        if self.thread and not self.thread.is_alive():
+            bt.logging.info("🔨 Restarting validator thread")
+            self.thread.start()
+        if self.status_thread and not self.status_thread.is_alive():
+            bt.logging.info("Restarting status thread")
+            self.status_thread.start()
     
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
@@ -503,3 +514,4 @@ if __name__ == "__main__":
         while True:
             bt.logging.info("Validator running...", time.time())
             time.sleep(60)
+            validator.check_threads()
