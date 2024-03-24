@@ -64,7 +64,6 @@ This repository requires python3.8 or higher. To install, simply clone this repo
 ```bash
 git clone https://github.com/Taomap/taomap-subnet.git
 cd taomap-subnet
-git checkout v2.0.0-alpha
 pip install -e .
 ```
 
