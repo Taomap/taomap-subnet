@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 
+from datetime import timedelta
 import time
 
 # Bittensor
@@ -186,6 +187,7 @@ class Validator(BaseValidatorNeuron):
                 if current_group_id >= len(self.voted_groups):
                     bt.logging.info("✅ Benchmarking finished")
                     self.benchmark_finished = True
+                    version = self.upload_to_wandb(f'final-benchmark-{self.uid}', f'benchmark-{self.current_term}', self.benchmark_state)
                     break
                 current_group = self.voted_groups[current_group_id] 
                 bt.logging.info(f"Benchmarking group {current_group_id}: {current_group}")
@@ -282,9 +284,11 @@ class Validator(BaseValidatorNeuron):
 
         return voted_commit['uid'], voted_commit['groups']
         
-    def upload_to_wandb(self, artifact_name, filename, data):
+    def upload_to_wandb(self, artifact_name, filename, data, ttl = None):
         try:
             artifact = wandb.Artifact(artifact_name, type = 'dataset')
+            if ttl:
+                artifact.ttl = timedelta(seconds=ttl)
             file_path = self.config.neuron.full_path + f'/{filename}.json'
             with open(file_path, 'w') as f:
                 json_str = json.dumps(data, indent=4)
@@ -326,7 +330,8 @@ class Validator(BaseValidatorNeuron):
                     "hash": hash(str(self.seed)),
                     "groups": self.groups,
                     "grouphash": hash(str(self.groups))
-                })
+                },
+                ttl = 3600 * 3)
 
     def cluster_miners(self):
         """
@@ -500,12 +505,15 @@ class Validator(BaseValidatorNeuron):
         if time.time() - self.last_run > 100:
             bt.logging.info("🔨 Restarting validator thread")
             self.thread.join(3)
+            self.thread = threading.Thread(target=self.run, daemon=True)
             self.thread.start()
         if self.thread and not self.thread.is_alive():
             bt.logging.info("🔨 Restarting validator thread")
+            self.thread = threading.Thread(target=self.run, daemon=True)
             self.thread.start()
         if self.status_thread and not self.status_thread.is_alive():
-            bt.logging.info("Restarting status thread")
+            bt.logging.info("🔨 Restarting status thread")
+            self.status_thread = threading.Thread(target=self.run_status, daemon=True)
             self.status_thread.start()
     
 # The main function parses the configuration and runs the validator.

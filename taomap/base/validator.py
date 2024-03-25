@@ -107,7 +107,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Initialize variables
         self.last_status_updated: int = None
         self.miner_status: dict = None
-        
+
         self.last_run = time.time()
 
     def serve_axon(self):
@@ -476,7 +476,7 @@ class BaseValidatorNeuron(BaseNeuron):
             }
         block_height = self.subtensor_sync.get_current_block()
         current_term = (block_height - constants.ORIGIN_TERM_BLOCK) // constants.BLOCKS_PER_TERM
-        self.upload_to_wandb(f'miners-{self.uid}', f'{current_term}', status_texts)
+        self.upload_to_wandb(f'miners-{self.uid}', f'{current_term}', status_texts, 3600 * 3)
         self.last_status_updated = block_height
         self.print_miner_status()
         return True
